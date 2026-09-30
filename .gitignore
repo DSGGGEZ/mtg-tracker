@@ -1,0 +1,23 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Card Kingdom large downloaded cache (auto-downloaded at runtime)
+data/ck_pricelist.json
+
+# Environment / local configs
+.env
+.venv/
+venv/
+ENV/
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

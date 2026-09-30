@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MTG Card Kingdom (CKD) Realtime Price Tracker</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Inter:wght@300;400;500;600;700;800&family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/style.css?v=3.3">
+</head>
+<body>
+    <!-- Top Header -->
+    <header class="app-header">
+        <div class="header-left">
+            <div class="brand-logo">
+                <i class="fa-solid fa-gem lotus-icon"></i>
+                <div class="brand-title">
+                    <span class="main-title">MTG CKD TRACKER</span>
+                    <span class="sub-title">Card Kingdom Real-time Price & Alert</span>
+                </div>
+            </div>
+            <div class="live-status-badge">
+                <span class="pulse-dot"></span>
+                <span>CKD LIVE SYNC</span>
+            </div>
+        </div>
+
+        <div class="header-right">
+            <!-- Currency Mode -->
+            <div class="rate-badge" title="อัตราแลกเปลี่ยน Card Kingdom x THB">
+                <span class="rate-label">CKD RATE:</span>
+                <span class="rate-val" id="headerThbRate">x34.0</span>
+            </div>
+
+            <!-- Sync Button -->
+            <button class="btn btn-outline" id="btnSyncNow" title="อัปเดตราคาล่าสุดจาก Card Kingdom ทันที">
+                <i class="fa-solid fa-arrows-rotate" id="syncIcon"></i>
+                <span class="btn-text">Sync Prices</span>
+            </button>
+
+            <!-- Add Cards Button -->
+            <button class="btn btn-primary" id="btnOpenAddModal">
+                <i class="fa-solid fa-plus"></i>
+                <span>Import Cards</span>
+            </button>
+
+            <!-- Sales History Button -->
+            <button class="btn btn-outline" id="btnOpenSales" title="ประวัติการขายการ์ดและยอดเงินที่ได้รับ">
+                <i class="fa-solid fa-receipt color-gold"></i>
+                <span id="headerSalesText">Sales: $0.00</span>
+            </button>
+
+            <!-- Export Report Button -->
+            <button class="btn btn-outline" id="btnOpenExportModal" title="ส่งออกรายงาน (Export Reports)">
+                <i class="fa-solid fa-file-arrow-down color-cyan"></i>
+                <span>Export Report</span>
+            </button>
+
+            <!-- Alerts Bell -->
+            <button class="icon-btn" id="btnOpenAlerts" title="การแจ้งเตือนราคา">
+                <i class="fa-solid fa-bell"></i>
+                <span class="alert-counter" id="alertCounter" style="display: none;">0</span>
+            </button>
+
+            <!-- Settings Button -->
+            <button class="icon-btn" id="btnOpenSettings" title="ตั้งค่าระบบ">
+                <i class="fa-solid fa-gear"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="main-container">
+        <!-- Portfolio Summary KPI Cards -->
+        <section class="summary-grid">
+            <div class="kpi-card highlight-cyan">
+                <div class="kpi-header">
+                    <span class="kpi-title">TOTAL RETAIL VALUE (CKD)</span>
+                    <i class="fa-solid fa-sack-dollar kpi-icon"></i>
+                </div>
+                <div class="kpi-value-group">
+                    <div class="kpi-val" id="totalRetailUsd">$0.00</div>
+                    <div class="kpi-sub-val" id="totalRetailThb">≈ ฿0</div>
+                </div>
+                <div class="kpi-footer">
+                    <span id="totalCardsCount">0 การ์ดทั้งหมด</span>
+                </div>
+            </div>
+
+            <div class="kpi-card highlight-gold">
+                <div class="kpi-header">
+                    <span class="kpi-title">TOTAL BUYLIST CASH-OUT</span>
+                    <i class="fa-solid fa-hand-holding-dollar kpi-icon"></i>
+                </div>
+                <div class="kpi-value-group">
+                    <div class="kpi-val" id="totalBuyUsd">$0.00</div>
+                    <div class="kpi-sub-val" id="totalBuyThb">≈ ฿0</div>
+                </div>
+                <div class="kpi-footer">
+                    <span id="cashoutRatio">อัตราขายคืนร้าน Card Kingdom</span>
+                </div>
+            </div>
+
+            <div class="kpi-card highlight-green">
+                <div class="kpi-header">
+                    <span class="kpi-title">TOP GAINER 🚀</span>
+                    <i class="fa-solid fa-arrow-trend-up kpi-icon"></i>
+                </div>
+                <div class="kpi-value-group">
+                    <div class="kpi-val-text" id="topGainerName">-</div>
+                    <div class="badge-change badge-up" id="topGainerChange">+0.0%</div>
+                </div>
+                <div class="kpi-footer" id="topGainerPrice">$0.00</div>
+            </div>
+
+            <div class="kpi-card highlight-red">
+                <div class="kpi-header">
+                    <span class="kpi-title">TOP LOSER 📉</span>
+                    <i class="fa-solid fa-arrow-trend-down kpi-icon"></i>
+                </div>
+                <div class="kpi-value-group">
+                    <div class="kpi-val-text" id="topLoserName">-</div>
+                    <div class="badge-change badge-down" id="topLoserChange">-0.0%</div>
+                </div>
+                <div class="kpi-footer" id="topLoserPrice">$0.00</div>
+            </div>
+            <div class="kpi-card highlight-purple" onclick="openSalesModal()" style="cursor: pointer;" title="คลิกเพื่อดูประวัติการขาย">
+                <div class="kpi-header">
+                    <span class="kpi-title">TOTAL REALIZED SALES 💰</span>
+                    <i class="fa-solid fa-coins kpi-icon"></i>
+                </div>
+                <div class="kpi-value-group">
+                    <div class="kpi-val" id="totalSoldUsd">$0.00</div>
+                    <div class="kpi-sub-val" id="totalSoldThb">≈ ฿0</div>
+                </div>
+                <div class="kpi-footer">
+                    <span id="totalSoldCardsCount">ขายแล้ว 0 ใบ (คลิกดูประวัติ)</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Box Opening Batches & Round Tabs -->
+        <section class="sets-bar-wrapper">
+            <div class="sets-bar" id="setsTabsContainer">
+                <!-- Dynamically populated box round tabs -->
+            </div>
+            <div style="display: flex; gap: 0.5rem; margin-left: auto; flex-shrink: 0;">
+                <button class="btn btn-sm btn-outline btn-manage-box" id="btnOpenAddBoxQuick" onclick="openNewBoxPrompt()" title="เปิดบ็อกรอบใหม่">
+                    <i class="fa-solid fa-plus-circle color-cyan"></i> เปิดบ็อกใหม่
+                </button>
+                <button class="btn btn-sm btn-outline btn-manage-box" id="btnOpenBoxCostModal" onclick="openBoxCostModal()" title="จัดการต้นทุนและรอบเปิดบ็อก">
+                    <i class="fa-solid fa-boxes-stacked"></i> จัดการรอบ/บ็อก
+                </button>
+            </div>
+        </section>
+
+        <!-- Box Performance & ROI Banner -->
+        <div class="box-roi-banner" id="boxRoiBanner" style="display: none;">
+            <div class="roi-banner-left">
+                <div class="box-badge-icon"><i class="fa-solid fa-box-open"></i></div>
+                <div>
+                    <div class="box-title-row">
+                        <h3 id="roiSetName">Reality Fracture (FRA)</h3>
+                        <span class="box-count-badge" id="roiBoxCount">1 บ็อก</span>
+                        <button class="btn-xs btn-outline" id="btnEditBoxCost" style="cursor: pointer;"><i class="fa-solid fa-pen"></i> แก้ไขต้นทุน</button>
+                    </div>
+                    <div class="box-notes-text" id="roiBoxNotes">ซื้อบ็อกมาเปิด 4,800 บาท</div>
+                </div>
+            </div>
+            <div class="roi-metrics-group">
+                <div class="roi-metric-item">
+                    <span class="metric-label">ต้นทุนบ็อก (Cost):</span>
+                    <span class="metric-val" id="roiCostThb">฿4,800</span>
+                </div>
+                <div class="roi-metric-item">
+                    <span class="metric-label">มูลค่าเปิดได้ (Pulled):</span>
+                    <span class="metric-val color-cyan" id="roiPulledThb">฿0</span>
+                </div>
+                <div class="roi-metric-item">
+                    <span class="metric-label">ขายคืนแล้ว (Sold):</span>
+                    <span class="metric-val color-gold" id="roiSoldThb">฿0</span>
+                </div>
+                <div class="roi-status-badge" id="roiStatusBadge">
+                    <span class="roi-pct" id="roiPctText">+0.0%</span>
+                    <span class="roi-status-label" id="roiStatusLabel">สถานะคุ้มทุน</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter & Search Controls -->
+        <section class="controls-bar">
+            <div class="search-box">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" id="searchInput" placeholder="ค้นหาชื่อการ์ด, ประเภท (Creature, Land, Mythic)...">
+                <button class="clear-search-btn" id="btnClearSearch" style="display: none;">&times;</button>
+            </div>
+
+            <div class="filters-group">
+                <!-- Rarity Filter -->
+                <select id="filterRarity" class="custom-select">
+                    <option value="">ทุกระดับความหายาก (All Rarities)</option>
+                    <option value="mythic">Mythic</option>
+                    <option value="rare">Rare</option>
+                    <option value="uncommon">Uncommon</option>
+                    <option value="common">Common</option>
+                </select>
+
+                <!-- Finish Filter -->
+                <select id="filterFoil" class="custom-select">
+                    <option value="">ทุกรูปแบบ (Regular & Foil)</option>
+                    <option value="1">เฉพาะ Foil 🌟</option>
+                    <option value="0">เฉพาะ Regular</option>
+                </select>
+
+                <!-- Alerts Only Filter -->
+                <button class="btn btn-filter-alert" id="btnFilterAlerts">
+                    <i class="fa-solid fa-bell-ring"></i>
+                    <span>มีแจ้งเตือนราคา</span>
+                </button>
+
+                <!-- Sort By -->
+                <select id="selectSort" class="custom-select">
+                    <option value="price_desc">ราคา: สูงไปต่ำ (High to Low)</option>
+                    <option value="price_asc">ราคา: ต่ำไปสูง (Low to High)</option>
+                    <option value="change_desc">การเปลี่ยนแปลง: ขึ้นมากสุด 📈</option>
+                    <option value="change_asc">การเปลี่ยนแปลง: ลงมากสุด 📉</option>
+                    <option value="name_asc">ชื่อการ์ด (A-Z)</option>
+                </select>
+
+                <!-- Display Scale Switcher -->
+                <div class="scale-mode-group" title="ปรับสเกลหน้าจอ (Display Scale)">
+                    <button class="scale-btn" data-scale-val="compact" title="กะทัดรัด (75%)">📱 75%</button>
+                    <button class="scale-btn active" data-scale-val="macbook" title="สัดส่วนพอดี MacBook Air M3 (85%)">💻 MacBook (85%)</button>
+                    <button class="scale-btn" data-scale-val="normal" title="หน้าจอใหญ่ปกติ (100%)">🖥️ 100%</button>
+                </div>
+
+                <!-- View Switcher -->
+                <div class="view-switch-group">
+                    <button class="view-btn active" id="btnViewGrid" title="มุมมอง Grid">
+                        <i class="fa-solid fa-grip"></i>
+                    </button>
+                    <button class="view-btn" id="btnViewTable" title="มุมมอง Table">
+                        <i class="fa-solid fa-list-ul"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Card Container (Grid View) -->
+        <section class="cards-grid" id="cardsGrid"></section>
+
+        <!-- Card Container (Table View) -->
+        <section class="table-container" id="cardsTableContainer" style="display: none;">
+            <table class="cards-table">
+                <thead>
+                    <tr>
+                        <th style="width: 60px;">Art</th>
+                        <th>ชื่อการ์ด (Card Name)</th>
+                        <th>ชุด / รอบเปิด</th>
+                        <th>ประเภท / Rarity</th>
+                        <th style="text-align: center;">จำนวนในสต็อก (My Qty)</th>
+                        <th>CKD Retail ($)</th>
+                        <th>ราคาบาท (THB)</th>
+                        <th>CKD Buylist ($)</th>
+                        <th>การเปลี่ยนแปลง</th>
+                        <th style="text-align: center;">Stock ร้าน CKD</th>
+                        <th>จัดการ</th>
+                    </tr>
+                </thead>
+                <tbody id="cardsTableBody"></tbody>
+            </table>
+        </section>
+    </main>
+
+    <!-- Modal: Price History & Chart -->
+    <div class="modal-backdrop" id="chartModal">
+        <div class="modal-card modal-large">
+            <div class="modal-header">
+                <div class="modal-card-title-group">
+                    <h3 id="chartModalTitle">Card Price History</h3>
+                    <div id="chartModalSubtitle" class="modal-subtitle">Card Kingdom Price Dynamics</div>
+                </div>
+                <button class="modal-close-btn" onclick="closeModal('chartModal')">&times;</button>
+            </div>
+            <div class="modal-body chart-modal-body">
+                <div class="chart-sidebar">
+                    <img id="chartCardImage" src="" alt="Card Art" class="chart-card-img">
+                    <div class="chart-card-details">
+                        <div class="detail-row">
+                            <span>CKD Retail:</span>
+                            <strong id="chartModalRetail" class="color-cyan">$0.00</strong>
+                        </div>
+                        <div class="detail-row">
+                            <span>CKD Buylist:</span>
+                            <strong id="chartModalBuy" class="color-gold">$0.00</strong>
+                        </div>
+                        <div class="detail-row">
+                            <span>ราคาไทย (THB):</span>
+                            <strong id="chartModalThb" class="color-green">฿0</strong>
+                        </div>
+                        <a id="chartModalCkLink" href="#" target="_blank" class="btn btn-ck-link">
+                            <i class="fa-solid fa-arrow-up-right-from-square"></i> ดูบน Card Kingdom
+                        </a>
+                    </div>
+                </div>
+                <div class="chart-content">
+                    <div class="chart-canvas-wrapper">
+                        <canvas id="priceHistoryChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Alerts Center Drawer -->
+    <div class="modal-backdrop" id="alertsModal">
+        <div class="modal-card modal-medium">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-bell"></i> ประวัติการแจ้งเตือนราคา (Price Alerts)</h3>
+                <button class="modal-close-btn" onclick="closeModal('alertsModal')">&times;</button>
+            </div>
+            <div class="modal-actions-bar">
+                <button class="btn btn-sm btn-outline" id="btnMarkAlertsRead">
+                    <i class="fa-solid fa-check-double"></i> อ่านทั้งหมดแล้ว
+                </button>
+                <button class="btn btn-sm btn-accent" id="btnSimulateAlert">
+                    <i class="fa-solid fa-bolt"></i> จำลองราคาเปลี่ยน (ทดสอบ Alert)
+                </button>
+            </div>
+            <div class="modal-body alerts-modal-body">
+                <div id="alertsList" class="alerts-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Import / Add Cards -->
+    <div class="modal-backdrop" id="addCardsModal">
+        <div class="modal-card modal-medium">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-plus-circle"></i> นำเข้าการ์ด (Import from Moxfield / Text)</h3>
+                <button class="modal-close-btn" onclick="closeModal('addCardsModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group" style="margin-bottom: 1.15rem; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.85rem;">
+                    <label style="font-weight: 600; font-size: 0.88rem; display: flex; align-items: center; gap: 0.4rem; color: #fff; margin-bottom: 0.6rem;">
+                        <i class="fa-solid fa-box-open color-cyan"></i> กำหนดรอบเปิดบ็อกสำหรับชุดการ์ดนี้ (Target Box Batch):
+                    </label>
+                    <div style="display: flex; gap: 1.25rem; margin-bottom: 0.65rem;">
+                        <label style="font-size: 0.85rem; display: flex; align-items: center; gap: 0.4rem; cursor: pointer; color: var(--text-primary);">
+                            <input type="radio" name="importBoxMode" value="existing" id="importBoxModeExisting" checked onchange="toggleImportBoxMode()">
+                            <span>นำเข้าใส่รอบเดิมที่มีอยู่</span>
+                        </label>
+                        <label style="font-size: 0.85rem; display: flex; align-items: center; gap: 0.4rem; cursor: pointer; color: var(--color-cyan); font-weight: 600;">
+                            <input type="radio" name="importBoxMode" value="new" id="importBoxModeNew" onchange="toggleImportBoxMode()">
+                            <span>➕ เปิดบ็อกรอบใหม่ (New Round)</span>
+                        </label>
+                    </div>
+
+                    <!-- Existing box dropdown -->
+                    <div id="importExistingBoxContainer">
+                        <select id="selectImportBox" class="custom-select" style="width: 100%; font-size: 0.88rem; padding: 0.55rem 0.75rem;">
+                        </select>
+                    </div>
+
+                    <!-- New box creation inputs -->
+                    <div id="importNewBoxContainer" style="display: none; border-top: 1px dashed rgba(56, 189, 248, 0.3); padding-top: 0.75rem; margin-top: 0.5rem;">
+                        <div class="form-row" style="display: flex; gap: 0.75rem; margin-bottom: 0.5rem;">
+                            <div class="form-group" style="flex: 2; margin-bottom: 0;">
+                                <label style="font-size: 0.78rem; color: var(--text-secondary);">ชื่อรอบ / บ็อก:</label>
+                                <input type="text" id="inputNewBoxName" class="custom-input input-bordered" placeholder="เช่น รอบที่ 2 (Box #2)">
+                            </div>
+                            <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                                <label style="font-size: 0.78rem; color: var(--text-secondary);">ชุด (Set Code):</label>
+                                <input type="text" id="inputNewBoxSet" class="custom-input input-bordered" value="FRA" style="text-transform: uppercase;">
+                            </div>
+                        </div>
+                        <div class="form-row" style="display: flex; gap: 0.75rem;">
+                            <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                                <label style="font-size: 0.78rem; color: var(--text-secondary);">ต้นทุนบ็อก (บาท):</label>
+                                <div class="input-with-affix">
+                                    <span class="affix">฿</span>
+                                    <input type="number" step="50" id="inputNewBoxCost" class="custom-input" value="4800" placeholder="4800">
+                                </div>
+                            </div>
+                            <div class="form-group" style="flex: 2; margin-bottom: 0;">
+                                <label style="font-size: 0.78rem; color: var(--text-secondary);">บันทึกช่วยจำ (Notes):</label>
+                                <input type="text" id="inputNewBoxNotes" class="custom-input input-bordered" placeholder="เช่น ซื้อ Play Booster Box #2">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <p class="modal-desc">วางข้อความ Export จาก Moxfield หรือพิมพ์ในรูปแบบ <code>1 Card Name (SET) CollectorNumber</code>:</p>
+                <textarea id="importCardsText" class="custom-textarea" rows="8" placeholder="1 The One Ring (LTR) 246&#10;1 Sol Ring (CMM) 410&#10;1 Darklight Phoenix (FRA) 53 *F*"></textarea>
+                <div class="modal-footer-btn">
+                    <button class="btn btn-outline" onclick="closeModal('addCardsModal')">ยกเลิก</button>
+                    <button class="btn btn-primary" id="btnSubmitImport">
+                        <i class="fa-solid fa-file-import"></i> นำเข้าการ์ด
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Settings -->
+    <div class="modal-backdrop" id="settingsModal">
+        <div class="modal-card modal-small">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-gear"></i> การตั้งค่าระบบ (Settings)</h3>
+                <button class="modal-close-btn" onclick="closeModal('settingsModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>อัตราแลกเปลี่ยนเงินบาท (CKD Rate Multiplier):</label>
+                    <div class="input-with-affix">
+                        <span class="affix">x</span>
+                        <input type="number" step="0.5" id="inputThbRate" class="custom-input" value="34.0">
+                        <span class="affix-end">THB / USD</span>
+                    </div>
+                    <small>ราคาในการ์ดจะคำนวณจาก (ราคา USD x ตัวคูณนี้)</small>
+                </div>
+
+                <div class="form-group">
+                    <label>เกณฑ์แจ้งเตือนราคาขึ้น/ลง (Price Alert Threshold):</label>
+                    <div class="input-with-affix">
+                        <span class="affix">±</span>
+                        <input type="number" step="1" id="inputAlertThreshold" class="custom-input" value="5.0">
+                        <span class="affix-end">%</span>
+                    </div>
+                    <small>เมื่อราคาขยับขึ้นหรือลงเกินเปอร์เซ็นต์นี้ ระบบจะบันทึก Alert</small>
+                </div>
+
+                <div class="form-group">
+                    <label>รอบการดึงราคาอัตโนมัติ (Auto-Sync Interval):</label>
+                    <div class="input-with-affix">
+                        <input type="number" step="5" id="inputSyncInterval" class="custom-input" value="30">
+                        <span class="affix-end">นาที</span>
+                    </div>
+                </div>
+
+                <div class="form-group checkbox-group">
+                    <label class="custom-checkbox">
+                        <input type="checkbox" id="checkSoundAlert" checked>
+                        <span>เปิดเสียงแจ้งเตือนเมื่อราคาเปลี่ยน (Audio Chime)</span>
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <label>ขนาดการแสดงผลหน้าจอ (Display Scale):</label>
+                    <select id="selectDisplayScale" class="custom-select" style="width: 100%;">
+                        <option value="macbook">💻 MacBook Air M3 (85%) - สัดส่วนแนะนำ ไม่ล้นจอ</option>
+                        <option value="compact">📱 กะทัดรัดพิเศษ (75%) - แสดงข้อมูลแน่นสุด</option>
+                        <option value="normal">🖥️ หน้าจอใหญ่ปกติ (100%) - สำหรับจอนอก 24"-32"</option>
+                    </select>
+                    <small>ปรับสเกลขนาดตัวอักษร รูปการ์ด และตารางให้พอดีกับขนาดหน้าจอของคุณ</small>
+                </div>
+
+                <div class="modal-footer-btn">
+                    <button class="btn btn-outline" onclick="closeModal('settingsModal')">ยกเลิก</button>
+                    <button class="btn btn-primary" id="btnSaveSettings">
+                        <i class="fa-solid fa-floppy-disk"></i> บันทึกการตั้งค่า
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Sell Card -->
+    <div class="modal-backdrop" id="sellCardModal">
+        <div class="modal-card modal-medium">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-hand-holding-dollar color-gold"></i> บันทึกการขายการ์ด (Record Sale)</h3>
+                <button class="modal-close-btn" onclick="closeModal('sellCardModal')">&times;</button>
+            </div>
+            <div class="modal-body sell-modal-body">
+                <div class="sell-card-preview">
+                    <img id="sellModalImg" src="" alt="Card Art" class="sell-modal-thumb">
+                    <div style="flex: 1;">
+                        <h4 id="sellModalCardName" style="color: #fff; font-size: 1.1rem; margin-bottom: 0.2rem;">Card Name</h4>
+                        <div id="sellModalCardMeta" class="modal-subtitle" style="margin-bottom: 0.6rem;">Set & Collector No</div>
+                        <div class="sell-ref-prices">
+                            <div>CKD Retail: <strong id="sellModalRefRetail" class="color-cyan">$0.00</strong></div>
+                            <div>CKD Buylist: <strong id="sellModalRefBuy" class="color-gold">$0.00</strong></div>
+                            <div>ราคาไทยปัจจุบัน: <strong id="sellModalRefThb" class="color-green">฿0</strong></div>
+                        </div>
+                        <button type="button" class="btn-change-art-inline" onclick="openVariantModalFromSell()">
+                            <i class="fa-solid fa-palette"></i> ไม่ใช่อาร์ทนี้? เปลี่ยนแบบการ์ด (Change Art)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Rate Multiplier Calculator Box -->
+                <div class="sell-rate-box">
+                    <div class="sell-rate-header">
+                        <label><i class="fa-solid fa-calculator color-gold"></i> คำนวณราคาขายด้วยตัวคูณเรท (CKD USD × เรทบาท):</label>
+                    </div>
+                    <div class="quick-rate-chips">
+                        <span class="chip-label">เรทยอดนิยม:</span>
+                        <button type="button" class="rate-chip active" data-rate="25" onclick="selectRateMultiplier(25, this)">x25</button>
+                        <button type="button" class="rate-chip" data-rate="28" onclick="selectRateMultiplier(28, this)">x28</button>
+                        <button type="button" class="rate-chip" data-rate="30" onclick="selectRateMultiplier(30, this)">x30</button>
+                        <button type="button" class="rate-chip" data-rate="32" onclick="selectRateMultiplier(32, this)">x32</button>
+                        <button type="button" class="rate-chip" id="chipSystemRate" data-rate="25" onclick="selectRateMultiplier(thbRate, this)">xเรทระบบ (25)</button>
+                    </div>
+                    <div class="sell-rate-input-row">
+                        <div class="input-with-affix" style="width: 140px;">
+                            <span class="affix">x</span>
+                            <input type="number" step="0.5" min="1" id="inputSellRateMultiplier" class="custom-input" value="25.0" placeholder="25">
+                            <span class="affix-end">THB</span>
+                        </div>
+                        <div class="sell-calc-display" id="sellCalcFormulaDisplay">
+                            สูตรคำนวณ: CKD <span id="formulaCkdUsd" class="color-cyan">$0.00</span> × <span id="formulaRate" class="color-gold">25.0</span> = <strong class="color-green" id="formulaResultThb">฿0</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="quick-price-chips">
+                    <span class="chip-label">หรือเลือกราคา USD ตรง:</span>
+                    <button type="button" class="price-chip" id="chipCkdRetail">CKD Retail (100%)</button>
+                    <button type="button" class="price-chip" id="chipCkd80">CKD 80%</button>
+                    <button type="button" class="price-chip" id="chipCkdBuy">CKD Buylist</button>
+                </div>
+
+                <form id="sellCardForm" onsubmit="event.preventDefault(); submitCardSale();">
+                    <input type="hidden" id="sellCardId" value="">
+                    
+                    <div class="form-row" style="display: flex; gap: 1rem;">
+                        <div class="form-group" style="flex: 1;">
+                            <label>ราคาที่ขายได้ (Sold Price):</label>
+                            <div class="input-with-affix">
+                                <span class="affix" id="sellCurrencySymbol">$</span>
+                                <input type="number" step="0.01" id="inputSellPrice" class="custom-input" required placeholder="0.00">
+                                <select id="selectSellCurrency" class="custom-select" style="border: none; background: rgba(255,255,255,0.05); cursor: pointer;">
+                                    <option value="USD">USD ($)</option>
+                                    <option value="THB">บาท (THB)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group" style="width: 110px;">
+                            <label>จำนวนที่ขาย:</label>
+                            <input type="number" min="1" id="inputSellQty" class="custom-input input-bordered" value="1" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>บันทึกผู้ซื้อ / ช่องทางขาย (Buyer / Channel Note):</label>
+                        <input type="text" id="inputBuyerNote" class="custom-input input-bordered" placeholder="เช่น ขายในกลุ่ม MTG Thailand, ขายให้เพื่อน, เทรดร้าน...">
+                    </div>
+
+                    <div class="modal-footer-btn">
+                        <button type="button" class="btn btn-outline" onclick="closeModal('sellCardModal')">ยกเลิก</button>
+                        <button type="submit" class="btn btn-primary" style="background: linear-gradient(135deg, #10b981, #059669);">
+                            <i class="fa-solid fa-check"></i> ยืนยันการขาย
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Select Card Art & Variant -->
+    <div class="modal-backdrop" id="variantModal">
+        <div class="modal-card modal-large">
+            <div class="modal-header">
+                <div>
+                    <h3 style="display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fa-solid fa-palette color-gold"></i>
+                        <span>เลือกอาร์ท / เวอร์ชันการ์ด (Select Card Art & Variant)</span>
+                    </h3>
+                    <div id="variantModalSubtitle" class="modal-subtitle">Card Name • Set FRA</div>
+                </div>
+                <button class="modal-close-btn" onclick="closeModal('variantModal')">&times;</button>
+            </div>
+            
+            <div class="modal-body" style="padding-top: 1rem;">
+                <!-- Split Qty Control (shown if qty > 1) -->
+                <div id="variantSplitSection" class="variant-split-box" style="display: none;">
+                    <div class="split-info">
+                        <i class="fa-solid fa-clone color-cyan"></i>
+                        <span>คุณมีการ์ดใบนี้จำนวน <strong id="variantTotalQtyText">2</strong> ใบ:</span>
+                    </div>
+                    <div class="split-options">
+                        <label class="split-radio-label">
+                            <input type="radio" name="variantSplitChoice" value="all" checked onchange="toggleVariantSplitCustom(false)">
+                            <span>เปลี่ยนอาร์ททั้งหมด (<span id="variantAllQtyCount">2</span> ใบ)</span>
+                        </label>
+                        <label class="split-radio-label">
+                            <input type="radio" name="variantSplitChoice" value="split" onchange="toggleVariantSplitCustom(true)">
+                            <span>แยกเปลี่ยนเฉพาะบางใบ:</span>
+                        </label>
+                        <div id="variantSplitInputWrapper" style="display: inline-flex; align-items: center; gap: 0.35rem; margin-left: 0.5rem; opacity: 0.5;">
+                            <input type="number" id="variantSplitQtyInput" class="custom-input" min="1" max="1" value="1" style="width: 70px; padding: 0.3rem 0.5rem;" disabled>
+                            <span>ใบ</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filter Pills -->
+                <div class="variant-filter-bar">
+                    <span class="chip-label"><i class="fa-solid fa-filter"></i> กรองแบบ:</span>
+                    <button type="button" class="variant-filter-chip active" data-filter="all" onclick="filterVariants('all', this)">ทั้งหมด (<span id="countVarAll">0</span>)</button>
+                    <button type="button" class="variant-filter-chip" data-filter="Regular" onclick="filterVariants('Regular', this)">Regular</button>
+                    <button type="button" class="variant-filter-chip" data-filter="Borderless" onclick="filterVariants('Borderless', this)">Borderless</button>
+                    <button type="button" class="variant-filter-chip" data-filter="Showcase" onclick="filterVariants('Showcase', this)">Showcase</button>
+                    <button type="button" class="variant-filter-chip" data-filter="foil" onclick="filterVariants('foil', this)">★ Foil</button>
+                </div>
+
+                <!-- Loading State -->
+                <div id="variantLoadingState" class="variant-loading">
+                    <i class="fa-solid fa-spinner fa-spin color-gold" style="font-size: 2.2rem; margin-bottom: 0.75rem;"></i>
+                    <p>กำลังค้นหาอาร์ทและราคาจาก Scryfall & Card Kingdom...</p>
+                </div>
+
+                <!-- Empty State -->
+                <div id="variantEmptyState" class="variant-empty" style="display: none;">
+                    <i class="fa-solid fa-circle-question" style="font-size: 2rem; margin-bottom: 0.5rem;"></i>
+                    <p>ไม่พบเวอร์ชันอื่นเพิ่มเติมสำหรับการ์ดนี้</p>
+                </div>
+
+                <!-- Variants Grid -->
+                <div id="variantGrid" class="variant-grid" style="display: none;">
+                    <!-- Variant items inserted by JS -->
+                </div>
+            </div>
+            
+            <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding: 0.85rem 1.5rem;">
+                <div style="font-size: 0.82rem; color: var(--text-muted);">
+                    <i class="fa-solid fa-circle-info"></i> เมื่อเลือกอาร์ทใหม่ ระบบจะปรับราคาตาม Card Kingdom และอัปเดตมูลค่าพอร์ตให้ทันที
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Edit Card Quantity -->
+    <div class="modal-backdrop" id="qtyModal">
+        <div class="modal-card modal-small">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-boxes-stacked color-cyan"></i> แก้ไขจำนวนสต็อก (Edit Stock Quantity)</h3>
+                <button class="modal-close-btn" onclick="closeModal('qtyModal')">&times;</button>
+            </div>
+            <div class="modal-body" style="text-align: center; padding-top: 1rem;">
+                <div class="qty-modal-preview">
+                    <img id="qtyModalImg" src="" alt="Card Art" class="qty-modal-thumb">
+                    <h4 id="qtyModalCardName" style="color: #fff; margin: 0.5rem 0 0.2rem 0; font-size: 1.1rem;">Card Name</h4>
+                    <div id="qtyModalMeta" class="modal-subtitle" style="margin-bottom: 0.75rem;">SET #000</div>
+                </div>
+
+                <div class="qty-stepper-container">
+                    <label style="display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+                        ระบุจำนวนการ์ดที่มีในมือ (Stock Quantity):
+                    </label>
+                    <div class="qty-stepper-big">
+                        <button type="button" class="btn-step-big" onclick="stepQtyModalInput(-1)"><i class="fa-solid fa-minus"></i></button>
+                        <input type="number" min="0" max="999" id="inputQtyModalValue" class="input-step-big" value="1" oninput="updateQtyModalCalc()">
+                        <button type="button" class="btn-step-big" onclick="stepQtyModalInput(1)"><i class="fa-solid fa-plus"></i></button>
+                    </div>
+
+                    <!-- Quick Qty Chips -->
+                    <div class="qty-quick-chips">
+                        <button type="button" class="qty-chip" onclick="setQtyModalValue(1)">1 ใบ</button>
+                        <button type="button" class="qty-chip" onclick="setQtyModalValue(2)">2 ใบ</button>
+                        <button type="button" class="qty-chip" onclick="setQtyModalValue(3)">3 ใบ</button>
+                        <button type="button" class="qty-chip" onclick="setQtyModalValue(4)">4 ใบ (Playset)</button>
+                    </div>
+
+                    <!-- Live Value Calculation -->
+                    <div class="qty-calc-display" id="qtyCalcDisplay">
+                        มูลค่ารวม: <strong id="qtyCalcUsd" class="color-cyan">$0.00</strong> 
+                        (<strong id="qtyCalcThb" class="color-green">฿0</strong>)
+                    </div>
+                </div>
+
+                <div class="modal-footer-btn" style="margin-top: 1.25rem;">
+                    <button type="button" class="btn btn-outline" onclick="closeModal('qtyModal')">ยกเลิก</button>
+                    <button type="button" class="btn btn-primary" onclick="submitQtyModal()" style="background: linear-gradient(135deg, #0284c7, #0369a1);">
+                        <i class="fa-solid fa-floppy-disk"></i> บันทึกจำนวน
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Sales History -->
+    <div class="modal-backdrop" id="salesHistoryModal">
+        <div class="modal-card modal-large">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-receipt color-gold"></i> ประวัติรายการขายทั้งหมด (Sales History)</h3>
+                <button class="modal-close-btn" onclick="closeModal('salesHistoryModal')">&times;</button>
+            </div>
+            <div class="modal-actions-bar" style="justify-content: space-between; align-items: center; padding: 0.85rem 1.5rem;">
+                <div style="font-size: 0.95rem;">
+                    ยอดขายสะสม: <strong id="salesModalTotalUsd" class="color-gold" style="font-size: 1.15rem;">$0.00</strong> 
+                    (<span id="salesModalTotalThb" class="color-green" style="font-weight: 700;">฿0</span>)
+                    • ทั้งหมด <span id="salesModalCount" style="color: #fff; font-weight: 700;">0</span> รายการ
+                </div>
+            </div>
+            <div class="modal-body" style="padding: 0;">
+                <div class="table-container" style="border: none; border-radius: 0; max-height: 60vh; overflow-y: auto;">
+                    <table class="cards-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 50px;">Art</th>
+                                <th>การ์ดที่ขาย</th>
+                                <th>รอบที่เปิด</th>
+                                <th>วันที่ขาย</th>
+                                <th>จำนวน</th>
+                                <th>ราคาขาย (USD)</th>
+                                <th>ราคาขาย (THB)</th>
+                                <th>CKD Retail ตอนขาย</th>
+                                <th>บันทึกผู้ซื้อ / ช่องทาง</th>
+                                <th>ลบ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="salesTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Manage Box Costs & Batches -->
+    <div class="modal-backdrop" id="boxCostModal">
+        <div class="modal-card modal-medium">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-boxes-stacked color-cyan"></i> จัดการรอบเปิดบ็อกและต้นทุน (Manage Box Batches)</h3>
+                <button class="modal-close-btn" onclick="closeModal('boxCostModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-desc" style="color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 1rem;">
+                    จัดการข้อมูลรอบเปิดบ็อก กำหนดต้นทุน และติดตามอัตราผลตอบแทน (ROI) ของแต่ละรอบแยกกัน:
+                </p>
+                <form id="boxCostForm" onsubmit="event.preventDefault(); submitBoxCost();">
+                    <div class="form-group" style="margin-bottom: 0.85rem;">
+                        <label style="font-weight: 600; color: #fff;">เลือกรอบเปิดบ็อกที่ต้องการแก้ไข:</label>
+                        <select id="selectCostBox" class="custom-select" onchange="onSelectCostBoxChange()" style="width: 100%; font-size: 0.9rem; padding: 0.65rem 0.85rem;">
+                        </select>
+                    </div>
+
+                    <!-- Live KPI preview for this box -->
+                    <div id="costBoxMetrics" style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1rem; font-size: 0.82rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                        <div>
+                            <span style="color: var(--text-secondary);">การ์ดในรอบนี้:</span> 
+                            <strong id="costBoxCardCount" class="color-cyan" style="font-size: 0.95rem;">0 ใบ</strong>
+                        </div>
+                        <div>
+                            <span style="color: var(--text-secondary);">มูลค่าการ์ดที่ยังถือ:</span> 
+                            <strong id="costBoxRetailThb" class="color-green" style="font-size: 0.95rem;">฿0</strong>
+                        </div>
+                        <div>
+                            <span style="color: var(--text-secondary);">ขายแล้ว:</span> 
+                            <strong id="costBoxSoldThb" class="color-gold" style="font-size: 0.95rem;">฿0</strong>
+                        </div>
+                        <div id="costBoxRoiBadge" class="roi-status-badge" style="padding: 0.2rem 0.6rem; font-size: 0.78rem;">
+                            <span id="costBoxRoiText">+0.0%</span>
+                        </div>
+                    </div>
+
+                    <div class="form-row" style="display: flex; gap: 0.85rem; margin-bottom: 0.85rem;">
+                        <div class="form-group" style="flex: 2; margin-bottom: 0;">
+                            <label style="font-size: 0.82rem; color: var(--text-secondary);">ชื่อรอบ / บ็อก (Box Name):</label>
+                            <input type="text" id="inputEditBoxName" class="custom-input input-bordered" placeholder="เช่น รอบที่ 1 (Box #1)" required>
+                        </div>
+                        <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                            <label style="font-size: 0.82rem; color: var(--text-secondary);">ชุด (Set Code):</label>
+                            <input type="text" id="inputEditBoxSet" class="custom-input input-bordered" style="text-transform: uppercase;" placeholder="FRA" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 0.85rem;">
+                        <label style="font-size: 0.82rem; color: var(--text-secondary);">ราคาต้นทุนบ็อก (บาท):</label>
+                        <div class="input-with-affix">
+                            <span class="affix">฿</span>
+                            <input type="number" step="50" id="inputEditBoxCost" class="custom-input" placeholder="เช่น 4800" required>
+                            <span class="affix-end">THB</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 1.25rem;">
+                        <label style="font-size: 0.82rem; color: var(--text-secondary);">บันทึกช่วยจำ (Notes):</label>
+                        <input type="text" id="inputEditBoxNotes" class="custom-input input-bordered" placeholder="เช่น ซื้อ Play Booster Box จากร้าน เมื่อวันที่...">
+                    </div>
+
+                    <div class="modal-footer-btn" style="justify-content: space-between;">
+                        <div>
+                            <button type="button" class="btn btn-outline" id="btnDeleteBox" onclick="deleteCurrentBox()" style="display: none; border-color: rgba(239, 68, 68, 0.4); color: #f87171;">
+                                <i class="fa-solid fa-trash"></i> ลบรอบนี้
+                            </button>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button type="button" class="btn btn-outline" onclick="closeModal('boxCostModal')">ปิด</button>
+                            <button type="submit" class="btn btn-primary" style="background: linear-gradient(135deg, #0284c7, #0369a1);">
+                                <i class="fa-solid fa-floppy-disk"></i> บันทึกข้อมูลบ็อก
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Export Reports -->
+    <div class="modal-backdrop" id="exportModal">
+        <div class="modal-card modal-medium">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-file-export color-cyan"></i> ส่งออกรายงาน (Export Reports)</h3>
+                <button class="modal-close-btn" onclick="closeModal('exportModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>ประเภทรายงานที่ต้องการส่งออก (Report Type):</label>
+                    <div class="export-type-selector">
+                        <div class="export-type-card active" data-type="inventory" onclick="selectExportType('inventory', this)">
+                            <i class="fa-solid fa-boxes-stacked export-type-icon color-cyan"></i>
+                            <div>
+                                <div class="export-type-title">รายงานพอร์ตการ์ด (Card Inventory)</div>
+                                <div class="export-type-desc">รายการการ์ดคงเหลือทั้งหมด, ราคา CKD Retail, Buylist, สต็อก และมูลค่าบาท</div>
+                            </div>
+                        </div>
+                        <div class="export-type-card" data-type="box_roi" onclick="selectExportType('box_roi', this)">
+                            <i class="fa-solid fa-chart-pie export-type-icon color-gold"></i>
+                            <div>
+                                <div class="export-type-title">รายงานผลประกอบการบ็อก (Box ROI & Financial)</div>
+                                <div class="export-type-desc">สรุปต้นทุนบ็อก, มูลค่าการ์ดที่เปิดได้, กำไร/ขาดทุน และอัตราผลตอบแทน ROI</div>
+                            </div>
+                        </div>
+                        <div class="export-type-card" data-type="sales" onclick="selectExportType('sales', this)">
+                            <i class="fa-solid fa-receipt export-type-icon color-green"></i>
+                            <div>
+                                <div class="export-type-title">รายงานประวัติการขาย (Sales Transactions)</div>
+                                <div class="export-type-desc">รายการการ์ดที่ขายไปแล้ว วันที่ ราคาที่ขายได้ และบันทึกผู้ซื้อ</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>ขอบเขตชุดการ์ด (Set Scope):</label>
+                    <select id="selectExportSet" class="custom-select" style="width: 100%; font-size: 0.9rem;">
+                        <option value="">ทุกชุดรวมกัน (All Sets)</option>
+                    </select>
+                </div>
+
+                <div class="export-actions-grid">
+                    <button type="button" class="btn-export-action" onclick="downloadExportCsv()">
+                        <i class="fa-solid fa-file-excel color-green"></i>
+                        <div>
+                            <strong>ดาวน์โหลด CSV (Excel)</strong>
+                            <small>เปิดด้วย Excel / Google Sheets ได้ทันที (UTF-8)</small>
+                        </div>
+                    </button>
+                    <button type="button" class="btn-export-action" onclick="openPrintableReport()">
+                        <i class="fa-solid fa-print color-cyan"></i>
+                        <div>
+                            <strong>พิมพ์รายงาน / เซฟ PDF</strong>
+                            <small>เปิดหน้าสรุปรายงานพร้อมสั่ง Print หรือ Save as PDF</small>
+                        </div>
+                    </button>
+                    <button type="button" class="btn-export-action" onclick="copySummaryText()">
+                        <i class="fa-solid fa-copy color-gold"></i>
+                        <div>
+                            <strong>คัดลอกสรุปข้อความ (Copy Text)</strong>
+                            <small>สำหรับนำไปโพสต์สรุปใน Facebook / Discord / LINE</small>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Printable / PDF Report View -->
+    <div class="modal-backdrop" id="printableReportModal">
+        <div class="modal-card modal-large" style="max-width: 960px; max-height: 95vh;">
+            <div class="modal-header no-print">
+                <h3><i class="fa-solid fa-print color-cyan"></i> สรุปรายงาน (Printable Report Preview)</h3>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <button class="btn btn-sm btn-primary" onclick="printReportSheet()"><i class="fa-solid fa-print"></i> พิมพ์ / Save PDF</button>
+                    <button class="modal-close-btn" onclick="closeModal('printableReportModal')">&times;</button>
+                </div>
+            </div>
+            <div class="modal-body" style="padding: 1.5rem; background: #fff; color: #0f172a; overflow-y: auto;" id="printableContentArea">
+                <!-- Printable document filled dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Custom JS -->
+    <script src="/static/js/app.js?v=3.4"></script>
+</body>
+</html>
